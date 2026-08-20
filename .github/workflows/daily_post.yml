@@ -1,0 +1,57 @@
+name: Kunlik post
+
+on:
+  schedule:
+    # 01:10 UTC = 06:10 Toshkent. Cron 5-15 daqiqa kechikishi mumkin,
+    # shuning uchun erta boshlanadi va ichidan 07:00 gacha kutadi.
+    - cron: '10 1 * * *'
+  workflow_dispatch:
+    inputs:
+      topic:
+        description: 'Mavzu (bosh qoldirsangiz agent ozi topadi)'
+        required: false
+        default: ''
+      force:
+        description: 'Bugun post chiqqan bolsa ham qayta chiqarish'
+        required: false
+        default: ''
+
+concurrency:
+  group: daily-post
+  cancel-in-progress: false
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - run: pip install -r requirements.txt
+
+      - name: Post yaratish va chiqarish
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          OWNER_CHAT_ID: ${{ secrets.OWNER_CHAT_ID }}
+          CHANNEL: ${{ vars.CHANNEL || '@azamatdevs' }}
+          PUBLISH_AT: ${{ vars.PUBLISH_AT || '07:00' }}
+          TOPIC: ${{ github.event.inputs.topic }}
+          FORCE: ${{ github.event.inputs.force }}
+        run: python -m src.main
+
+      - name: Tarixni saqlash
+        if: always()
+        run: |
+          git config user.name  "post-bot"
+          git config user.email "bot@users.noreply.github.com"
+          git add data/history.json
+          git diff --staged --quiet || git commit -m "history: $(date -u +%F)"
+          git pull --rebase --autostash || true
+          git push || true
