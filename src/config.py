@@ -15,7 +15,7 @@ TZ = ZoneInfo("Asia/Tashkent")
 PUBLISH_AT = os.environ.get("PUBLISH_AT", "07:00")  # Toshkent vaqti, HH:MM
 
 # --- Modellar ---
-TEXT_MODEL = os.environ.get("TEXT_MODEL", "gemini-2.5-flash")
+TEXT_MODEL = os.environ.get("TEXT_MODEL", "gemini-3.6-flash")
 IMAGE_MODELS = [
     m.strip() for m in
     os.environ.get("IMAGE_MODELS", "gemini-2.5-flash-image,gemini-2.0-flash-preview-image-generation").split(",")
