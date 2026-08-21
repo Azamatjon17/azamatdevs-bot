@@ -37,22 +37,28 @@ def build_caption(post):
     return f"<b>{title}</b>\n\n{body}\n\n{tags}".strip()
 
 
-def fit(caption):
+def fit(caption, allow_gemini=True):
     """1024 belgiga sig'dirish."""
-    for _ in range(2):
-        if len(caption) <= config.MAX_CAPTION:
-            return caption
-        log(f"caption {len(caption)} belgi — qisqartirilmoqda")
-        caption = gemini.shorten(caption, config.MAX_CAPTION - 40)
+    if allow_gemini:
+        for _ in range(2):
+            if len(caption) <= config.MAX_CAPTION:
+                return caption
+            log(f"caption {len(caption)} belgi — qisqartirilmoqda")
+            caption = gemini.shorten(caption, config.MAX_CAPTION - 40)
     if len(caption) > config.MAX_CAPTION:
         caption = caption[: config.MAX_CAPTION - 1].rsplit(" ", 1)[0] + "…"
     return caption
 
 
 def make_post(topic, angle, briefing, feedback=None, previous=None, post=None):
+    """post berilsa (Notion navbatidan), Gemini umuman chaqirilmaydi — QC ham o'tkazib yuboriladi."""
+    use_gemini = post is None
     if post is None:
         post = gemini.write_post(topic, angle, briefing, feedback, previous)
-    caption = fit(build_caption(post))
+    caption = fit(build_caption(post), allow_gemini=use_gemini)
+
+    if not use_gemini:
+        return post, caption, {"verdict": "skip", "score": None, "issues": []}
 
     verdict = gemini.qc(caption, topic)
     log(f"QC: {verdict.get('verdict')} ({verdict.get('score')}) {verdict.get('issues')}")
