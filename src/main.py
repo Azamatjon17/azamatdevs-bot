@@ -6,7 +6,7 @@ import time
 import traceback
 from datetime import datetime, timedelta
 
-from . import config, gemini, history
+from . import config, gemini, history, queue
 from . import telegram_api as tg
 
 KB = [
@@ -49,8 +49,9 @@ def fit(caption):
     return caption
 
 
-def make_post(topic, angle, briefing, feedback=None, previous=None):
-    post = gemini.write_post(topic, angle, briefing, feedback, previous)
+def make_post(topic, angle, briefing, feedback=None, previous=None, post=None):
+    if post is None:
+        post = gemini.write_post(topic, angle, briefing, feedback, previous)
     caption = fit(build_caption(post))
 
     verdict = gemini.qc(caption, topic)
@@ -93,10 +94,11 @@ def wait_for_text(deadline, offset):
     return None, offset
 
 
-def send_draft(caption, image, rewrites, deadline):
+def send_draft(caption, image, rewrites, deadline, source):
     header = (
         f"📝 <b>Qoralama</b>"
         f"{f' (qayta yozish #{rewrites})' if rewrites else ''}\n"
+        f"✍️ Manba: {source}\n"
         f"⏰ {deadline:%H:%M} da avtomatik chiqadi\n"
         f"📏 {len(caption)} / {config.CAPTION_LIMIT} belgi"
     )
@@ -124,28 +126,44 @@ def run():
     deadline = publish_deadline()
     offset = tg.drain()
 
-    # 1. Mavzu
+    # 1. Navbat (Notion) yoki mavzu
+    source = "Gemini"
+    queued = queue.next_queued()
     topic = os.environ.get("TOPIC", "").strip()
     angle, category = "", "qo'lda"
-    if topic:
+    manual_post = None
+
+    if queued:
+        source = "Cowork"
+        topic, category = queued["topic"], queued["category"]
+        manual_post = {
+            "title": queued["title"],
+            "body": queued["body"],
+            "hashtags": queued["hashtags"],
+            "image_prompt": queued["image_prompt"],
+        }
+        log(f"Navbatdan olindi: {topic}")
+    elif topic:
         log(f"Berilgan mavzu: {topic}")
     else:
         topic, angle, category = gemini.pick_topic(history.recent_titles())
         log(f"Tanlangan mavzu: {topic} | {angle}")
 
-    # 2. Research
-    briefing = gemini.research(topic, angle)
-    log(f"Research tayyor ({len(briefing)} belgi)")
+    # 2. Research (navbatdagi post uchun kerak emas)
+    briefing = ""
+    if not manual_post:
+        briefing = gemini.research(topic, angle)
+        log(f"Research tayyor ({len(briefing)} belgi)")
 
     # 3-4. Yozish + QC
-    post, caption, verdict = make_post(topic, angle, briefing)
+    post, caption, verdict = make_post(topic, angle, briefing, post=manual_post)
 
     # 5. Rasm
     image = gemini.generate_image(post.get("image_prompt", topic))
 
     # 6. Tasdiqlash sikli
     rewrites = 0
-    msg = send_draft(caption, image, rewrites, deadline)
+    msg = send_draft(caption, image, rewrites, deadline, source)
 
     while True:
         action, cb, offset = wait_for_click(deadline, offset)
@@ -170,7 +188,7 @@ def run():
             tg.clear_keyboard(config.OWNER_CHAT_ID, msg["message_id"])
             new = gemini.generate_image(post.get("image_prompt", topic) + " Alternative composition.")
             image = new or image
-            msg = send_draft(caption, image, rewrites, deadline)
+            msg = send_draft(caption, image, rewrites, deadline, source)
             continue
 
         if action == "rewrite":
@@ -195,10 +213,11 @@ def run():
                 briefing = gemini.research(topic, angle)
                 log(f"Yangi mavzu: {topic}")
 
+            source = "Gemini"
             post, caption, verdict = make_post(topic, angle, briefing,
                                                feedback=feedback, previous=caption)
             image = gemini.generate_image(post.get("image_prompt", topic)) or image
-            msg = send_draft(caption, image, rewrites, deadline)
+            msg = send_draft(caption, image, rewrites, deadline, source)
             continue
 
     # 7. Kutish va chiqarish
@@ -207,6 +226,11 @@ def run():
 
     sent = publish(caption, image)
     log("Post kanalga chiqdi")
+
+    if queued and not queue.mark_published(queued["page_id"]):
+        tg.send_message(config.OWNER_CHAT_ID,
+                         "⚠️ Post chiqdi, lekin Notion navbatidagi holatini yangilab bo'lmadi — "
+                         "qo'lda \"Chiqdi\" deb belgilang, aks holda ertaga qayta chiqishi mumkin.")
 
     link = f"https://t.me/{config.CHANNEL.lstrip('@')}/{sent.get('message_id', '')}"
     tg.send_message(config.OWNER_CHAT_ID, f"✅ Post chiqdi\n{link}", preview=True)

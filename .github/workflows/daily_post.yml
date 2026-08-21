@@ -43,6 +43,8 @@ jobs:
           CHANNEL: ${{ vars.CHANNEL || '@azamatdevs' }}
           PUBLISH_AT: ${{ vars.PUBLISH_AT || '07:00' }}
           IMAGE_MODELS: ${{ vars.IMAGE_MODELS }}
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          NOTION_DS_ID: ${{ vars.NOTION_DS_ID }}
           TOPIC: ${{ github.event.inputs.topic }}
           FORCE: ${{ github.event.inputs.force }}
         run: python -m src.main

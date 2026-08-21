@@ -6,6 +6,8 @@ from zoneinfo import ZoneInfo
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
 GEMINI_KEY = os.environ.get("GEMINI_API_KEY", "")
 OWNER_CHAT_ID = int(os.environ.get("OWNER_CHAT_ID", "0") or 0)
+NOTION_TOKEN = os.environ.get("NOTION_TOKEN", "")
+NOTION_DS_ID = os.environ.get("NOTION_DS_ID", "")
 
 # --- Kanal ---
 CHANNEL = os.environ.get("CHANNEL", "@azamatdevs")
