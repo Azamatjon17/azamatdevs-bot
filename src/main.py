@@ -111,7 +111,9 @@ def send_draft(caption, image, rewrites, deadline, source):
     tg.send_message(config.OWNER_CHAT_ID, header)
     if image:
         return tg.send_photo(config.OWNER_CHAT_ID, image, caption, KB)
-    return tg.send_message(config.OWNER_CHAT_ID, caption + "\n\n⚠️ <i>Rasm yaratilmadi</i>", KB)
+    if config.IMAGE_MODELS:
+        caption += "\n\n⚠️ <i>Rasm yaratilmadi</i>"
+    return tg.send_message(config.OWNER_CHAT_ID, caption, KB)
 
 
 def publish(caption, image):
