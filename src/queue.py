@@ -53,7 +53,6 @@ def next_queued():
         "title": _plain_text(props["Sarlavha"]["title"]),
         "body": _plain_text(props["Matn"]["rich_text"]),
         "hashtags": [h for h in hashtags_raw.split() if h],
-        "image_prompt": _plain_text(props["Rasm prompti"]["rich_text"]),
         "topic": _plain_text(props["Mavzu"]["rich_text"]),
         "category": (props["Kategoriya"].get("select") or {}).get("name", ""),
     }
@@ -67,6 +66,16 @@ def mark_published(page_id):
             "Chiqarilgan sana": {"date": {"start": datetime.now(timezone.utc).isoformat()}},
         }
     }
+    return _update(page_id, body)
+
+
+def mark_draft(page_id):
+    """Postni tahrirlash uchun 'Qoralama' holatiga qaytaradi."""
+    body = {"properties": {"Holat": {"select": {"name": "Qoralama"}}}}
+    return _update(page_id, body)
+
+
+def _update(page_id, body):
     try:
         r = requests.patch(f"{API}/pages/{page_id}", headers=_headers(), json=body, timeout=30)
         r.raise_for_status()

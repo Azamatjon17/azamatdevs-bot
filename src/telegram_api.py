@@ -34,14 +34,6 @@ def _api(method, **kwargs):
     raise TelegramError(f"{method}: takrorlash tugadi")
 
 
-def send_photo(chat_id, photo_bytes, caption, keyboard=None):
-    kw = {"chat_id": chat_id, "caption": caption, "parse_mode": "HTML"}
-    if keyboard:
-        import json as _j
-        kw["reply_markup"] = _j.dumps({"inline_keyboard": keyboard})
-    return _api("sendPhoto", files={"photo": ("post.png", photo_bytes, "image/png")}, **kw)
-
-
 def send_message(chat_id, text, keyboard=None, preview=False):
     kw = {
         "chat_id": chat_id,
@@ -52,11 +44,6 @@ def send_message(chat_id, text, keyboard=None, preview=False):
     if keyboard:
         kw["reply_markup"] = {"inline_keyboard": keyboard}
     return _api("sendMessage", **kw)
-
-
-def edit_caption(chat_id, message_id, caption):
-    return _api("editMessageCaption", chat_id=chat_id, message_id=message_id,
-                caption=caption, parse_mode="HTML")
 
 
 def clear_keyboard(chat_id, message_id):

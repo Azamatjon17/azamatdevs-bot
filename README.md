@@ -1,24 +1,28 @@
 # @azamatdevs — avtomatik post tizimi
 
-Har kuni ertalab bitta post: mavzu topiladi → internetdan tekshiriladi → sizning
-uslubingizda yoziladi → rasm yaratiladi → sifat nazoratidan o'tadi → sizga
-tasdiqlashga yuboriladi → 07:00 da kanalga chiqadi.
+Har kuni ertalab: Notion'dagi post navbatidan eng eski "Navbatda" yozuv
+olinadi → dasturiy tekshiruvdan o'tadi → sizga tasdiqlashga yuboriladi →
+07:00 da kanalga chiqadi. Postlarni Cowork (yoki siz qo'lda) Notion'ga
+oldindan tayyorlab qo'yadi — bu skriptning o'zi hech qanday AI chaqirmaydi.
 
 ## Kunlik oqim
 
 | Vaqt (Toshkent) | Nima bo'ladi |
 |---|---|
-| 06:10 | Ishga tushadi: mavzu → research → matn → rasm → QC |
-| ~06:20 | Sizga botga qoralama keladi, 4 ta tugma bilan |
-| 06:20–07:00 | Siz ko'rib chiqasiz. Javob bermasangiz ham post chiqadi |
+| 06:10 | Ishga tushadi: Notion navbatidan post oladi, tekshiradi |
+| ~06:11 | Sizga botga qoralama keladi, 3 ta tugma bilan |
+| 06:11–07:00 | Siz ko'rib chiqasiz. Javob bermasangiz ham post chiqadi |
 | 07:00 | Kanalga chiqadi, sizga havola keladi |
 
-**Tugmalar:** ✅ Chiqarish · ✏️ Qayta yozish (izohingiz bilan, 3 martagacha) ·
-🖼 Rasmni almashtir · ❌ Bugun chiqmasin
+Navbat bo'sh bo'lsa — botga «📭 Navbat bo'sh» xabari keladi, bugun post
+chiqmaydi.
+
+**Tugmalar:** ✅ Chiqarish · 📝 Tahrirlash (Notion'da "Qoralama"ga
+o'tkazadi, tuzatib "Navbatda"ga qaytarasiz) · ❌ Bugun chiqmasin
 
 ---
 
-## O'rnatish — 8 qadam
+## O'rnatish
 
 ### 1. Bot tokenini yangilang
 @BotFather → `/mybots` → `@azamatjon_ai_bot` → *API Token* → **Revoke current token**.
@@ -28,73 +32,39 @@ Yangi tokenni hech kimga ko'rsatmang.
 @azamatdevs → *Administrators* → *Add Admin* → `@azamatjon_ai_bot` →
 **Post Messages** huquqini yoqing.
 
-### 3. Gemini kalitini oling
-https://aistudio.google.com/apikey → *Create API key*.
+### 3. Notion integratsiyasini yarating
+notion.so/my-integrations → *New integration* → nom bering → Save →
+*Internal Integration Secret* ni nusxalang. Post navbati bazasini oching →
+⋯ → *Connections* → shu integratsiyani qo'shing (bu qadam eng ko'p unutiladi).
 
-### 4. GitHub'da repo yarating
-github.com → *New repository* → nomi `azamatdevs-bot` → **Public**
-(public bo'lsa Actions daqiqalari cheksiz va bepul; private'da oyiga 2000 daqiqa
-chegara bor, bizga ~1000 kerak — ikkalasi ham yetadi).
+### 4. Secrets va Variables qo'shing
+Repo → *Settings* → *Secrets and variables* → *Actions*:
 
-Shu papkadagi barcha fayllarni repo'ga yuklang.
+| Joy | Nomi | Qiymati |
+|---|---|---|
+| Secrets | `TELEGRAM_BOT_TOKEN` | 1-qadamdagi yangi token |
+| Secrets | `OWNER_CHAT_ID` | pastdagi 5-qadamda olasiz |
+| Secrets | `NOTION_TOKEN` | 3-qadamdagi integratsiya kaliti |
+| Variables | `NOTION_DS_ID` | Post navbati bazasining data source ID'si |
 
-### 5. Secrets qo'shing
-Repo → *Settings* → *Secrets and variables* → *Actions* → *New repository secret*:
-
-| Nomi | Qiymati |
-|---|---|
-| `TELEGRAM_BOT_TOKEN` | 1-qadamdagi yangi token |
-| `GEMINI_API_KEY` | 3-qadamdagi kalit |
-| `OWNER_CHAT_ID` | 6-qadamda olasiz |
-
-### 6. Chat ID'ni aniqlang
+### 5. Chat ID'ni aniqlang
 Eng oson yo'l: Telegram'da **@userinfobot** ga `/start` yozing — u sizga ID beradi.
 
-Yoki kompyuterda:
-```bash
-pip install requests
-export TELEGRAM_BOT_TOKEN="yangi_token"
-# @azamatjon_ai_bot ga /start yozing, keyin:
-python -m src.whoami
-```
+### 6. Sinab ko'ring
+Notion'da navbatga "Navbatda" holatida bitta post qo'ying, so'ng
+Repo → *Actions* → *Kunlik post* → **Run workflow**.
 
-### 7. Sinab ko'ring
-Repo → *Actions* → *Kunlik post* → **Run workflow** → *Mavzu* maydoniga
-masalan `Deadline'ga amal qilish nega muhim` yozing → *Run*.
+> Sinovda post darhol emas, keyingi `PUBLISH_AT` vaqtida chiqadi. Darhol
+> ko'rish uchun repo *Variables* bo'limiga `PUBLISH_AT` = hozirgi vaqtdan
+> 5-10 daqiqa keyingi soatni qo'ying, sinab bo'lgach `07:00` ga qaytaring.
 
-Bir-ikki daqiqada botga qoralama kelishi kerak.
-
-> Sinovda post darhol emas, keyingi 07:00 da chiqadi. Darhol ko'rish uchun
-> repo *Variables* bo'limiga `PUBLISH_AT` = hozirgi vaqtdan 5 daqiqa keyingi
-> soatni qo'ying, sinab bo'lgach `07:00` ga qaytaring.
-
-### 8. Avtomatik rejimni yoqing
-Hech narsa qilish shart emas — cron o'zi ertalab ishga tushadi.
-Faqat repo 60 kun harakatsiz qolsa GitHub cron'ni to'xtatadi, shuning uchun
-oyda bir marta biror faylni tahrirlab qo'ying (yoki har kuni post chiqib
-tarix commit bo'lgani uchun bu muammo bo'lmaydi).
+### 7. Avtomatik rejim
+Hech narsa qilish shart emas — cron o'zi ertalab ishga tushadi. Faqat
+navbatni bo'sh qoldirmang, aks holda o'sha kuni post chiqmaydi.
 
 ---
 
-## Kundalik ishlatish
-
-### Mavzuni o'zingiz berish
-Actions → *Kunlik post* → *Run workflow* → mavzuni yozing.
-Masalan: `Bugun Docker volumes'ni o'rgandim` yoki `Aytilgan gapga javob berish`.
-
-### Uslubni yaxshilash
-`samples.md` fayliga o'zingizga yoqqan postlarni qo'shib boring.
-Har bir yangi namuna agentni aniqroq qiladi.
-
-### Yangi qoida qo'shish
-`rules.md` faylining oxiriga yozing. Masalan:
-```
-17. "Do'stlar" so'zini ishlatmasin, "azizlar" desin.
-18. Har postda kamida bitta amaliy maslahat bo'lsin.
-```
-QC agent ertasi kunidan boshlab shu qoidani tekshiradi.
-
-### Vaqtni o'zgartirish
+## Vaqtni o'zgartirish
 Repo → *Settings* → *Variables* → `PUBLISH_AT` = `08:00`.
 Cron vaqtini ham `.github/workflows/daily_post.yml` da mos ravishda suring
 (UTC = Toshkent − 5 soat).
@@ -111,11 +81,10 @@ yozmagansiz.
 
 **"not enough rights"** → bot kanalda admin emas yoki *Post Messages* o'chiq.
 
-**Rasm chiqmayapti** → Gemini'ning rasm modeli bepul tarifda cheklangan bo'lishi
-mumkin. Bu holda post rasmsiz chiqadi va sizga ogohlantirish keladi.
-`IMAGE_MODELS` variable orqali boshqa model nomini sinab ko'rish mumkin.
+**`[navbat] Notion so'rovi muvaffaqiyatsiz`** → `NOTION_TOKEN` yoki
+`NOTION_DS_ID` noto'g'ri, yoki integratsiya bazaga ulanmagan (3-qadam).
 
-**Post 1024 belgidan oshdi** → tizim o'zi qisqartiradi, aralashish shart emas.
+**📭 Navbat bo'sh** → Notion'da "Navbatda" holatida hech narsa yo'q.
 
 ---
 
@@ -123,11 +92,8 @@ mumkin. Bu holda post rasmsiz chiqadi va sizga ogohlantirish keladi.
 
 ```
 src/config.py        sozlamalar
-src/style.py         uslub yo'riqnomasi va prompt'lar  ← eng muhim fayl
-src/gemini.py        Gemini chaqiruvlari
+src/queue.py          Notion navbati bilan ishlash
 src/telegram_api.py  Telegram
-src/history.py       mavzu takrorlanmasligi uchun tarix
+src/history.py       tarix va "bugun chiqdimi" tekshiruvi
 src/main.py          umumiy oqim
-samples.md           sizning post namunalaringiz    ← to'ldirib boring
-rules.md             sifat nazorati qoidalari       ← to'ldirib boring
 ```
